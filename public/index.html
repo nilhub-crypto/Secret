@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secret Game Info Catcher</title>
+<style>
+  :root {
+    --bg:      #080808;
+    --bg2:     #0d0d0d;
+    --bg3:     #111111;
+    --bg4:     #161616;
+    --panel:   #0c0c0c;
+    --card:    #131313;
+    --border:  #242424;
+    --border2: #333333;
+    --accent:  #484848;
+    --accent2: #686868;
+    --accent3: #d0d0d0;
+    --green:   #4ade80;
+    --green2:  #22c55e;
+    --red:     #f87171;
+    --yellow:  #fbbf24;
+    --cyan:    #22d3ee;
+    --gray:    #a0a0a0;
+    --gray2:   #707070;
+    --text:    #e0e0e0;
+    --text2:   #909090;
+    --text3:   #565656;
+    --line:    rgba(255,255,255,0.025);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridPulse 8s ease-in-out infinite;
+    pointer-events: none; z-index: 0;
+  }
+  @keyframes gridPulse { 0%,100%{opacity:.4} 50%{opacity:.7} }
+  body::after {
+    content: '';
+    position: fixed; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent, #444, transparent);
+    animation: scanLine 6s linear infinite;
+    pointer-events: none; z-index: 1; opacity: 0.4;
+  }
+  @keyframes scanLine { 0%{top:-2px} 100%{top:100vh} }
+  .content { position: relative; z-index: 2; }
+
+  /* HEADER */
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 0 30px rgba(0,0,0,0.9);
+  }
+  .logo { display:flex; align-items:center; gap:10px; font-size:15px; font-weight:bold; letter-spacing:1px; color:var(--accent3); }
+  .logo-icon {
+    width:28px; height:28px;
+    border:1.5px solid var(--accent);
+    border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px;
+    animation: logoPulse 3s ease-in-out infinite;
+  }
+  @keyframes logoPulse { 0%,100%{box-shadow:0 0 10px rgba(255,255,255,0.05)} 50%{box-shadow:0 0 18px rgba(255,255,255,0.10)} }
+  .header-actions { display:flex; align-items:center; gap:10px; }
+  .badge { font-size:10px; padding:2px 8px; border-radius:3px; letter-spacing:1.5px; font-weight:bold; }
+  .badge-green { background:rgba(74,222,128,0.12); color:var(--green); border:1px solid rgba(74,222,128,0.25); }
+  .badge-gray  { background:rgba(255,255,255,0.05); color:var(--accent3); border:1px solid var(--border); }
+  .badge-red   { background:rgba(248,113,113,0.12); color:var(--red); border:1px solid rgba(248,113,113,0.25); }
+
+  /* INPUT ZONE */
+  .input-zone {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; gap: 10px; align-items: center;
+  }
+  .input-group {
+    display:flex; align-items:center; gap:8px; flex:1;
+    background:var(--bg3); border:1px solid var(--border);
+    border-radius:6px; padding:7px 12px;
+    transition: border-color .2s;
+  }
+  .input-group:focus-within { border-color: var(--accent2); }
+  .input-group label { color:var(--text3); font-size:10px; letter-spacing:1px; white-space:nowrap; }
+  .input-group input { background:transparent; border:none; outline:none; color:var(--text); font-family:'Courier New',monospace; font-size:13px; flex:1; min-width:0; }
+  .input-group input::placeholder { color:var(--text3); }
+  .btn { padding:7px 16px; border-radius:6px; border:none; font-family:'Courier New',monospace; font-size:12px; letter-spacing:1px; cursor:pointer; transition:all .2s; white-space:nowrap; }
+  .btn-primary { background:#303030; color:#e0e0e0; font-weight:bold; }
+  .btn-primary:hover { background:#404040; box-shadow:0 0 12px rgba(255,255,255,0.06); }
+  .btn-ghost { background:transparent; color:var(--text2); border:1px solid var(--border); }
+  .btn-ghost:hover { border-color:var(--accent); color:var(--accent3); }
+  .btn-copy { background:rgba(34,211,238,0.08); color:var(--cyan); border:1px solid rgba(34,211,238,0.2); font-size:11px; padding:5px 12px; }
+  .btn-copy:hover { background:rgba(34,211,238,0.16); }
+  .btn-danger { background:rgba(248,113,113,0.08); color:var(--red); border:1px solid rgba(248,113,113,0.2); font-size:11px; padding:5px 12px; }
+  .btn-danger:hover { background:rgba(248,113,113,0.16); }
+
+  /* GAME CARD */
+  .game-card { background:var(--bg2); border-bottom:1px solid var(--border); padding:16px 24px; display:none; animation:slideDown .3s ease; }
+  .game-card.visible { display:block; }
+  @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+  .game-info-grid { display:grid; grid-template-columns:auto 1fr; gap:16px; align-items:start; }
+  .game-thumb { width:72px; height:72px; background:var(--bg4); border:1px solid var(--border); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:28px; color:var(--accent2); flex-shrink:0; }
+  .game-meta { display:flex; flex-direction:column; gap:8px; }
+  .game-name { font-size:17px; font-weight:bold; color:var(--accent3); letter-spacing:.5px; }
+  .game-stats { display:flex; gap:20px; flex-wrap:wrap; }
+  .stat { display:flex; flex-direction:column; gap:2px; }
+  .stat-label { font-size:10px; color:var(--text3); letter-spacing:1px; }
+  .stat-value { font-size:13px; color:var(--text2); }
+  .stat-value.green{color:var(--green)} .stat-value.yellow{color:var(--yellow)} .stat-value.cyan{color:var(--cyan)}
+
+  /* HISTORY DRAWER */
+  .history-bar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .history-label { font-size:10px; color:var(--text3); letter-spacing:1.5px; margin-right:4px; }
+  .history-chip {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius:4px; padding:4px 10px; font-size:11px; color:var(--text2);
+    cursor:pointer; transition: all .15s;
+    display:flex; align-items:center; gap:6px;
+  }
+  .history-chip:hover { border-color:var(--accent); color:var(--accent3); }
+  .history-chip.active { border-color:var(--gray2); color:var(--accent3); background:var(--bg4); }
+  .history-chip-dot { width:5px; height:5px; border-radius:50%; background:var(--green); box-shadow:0 0 5px var(--green2); }
+  .history-empty { font-size:11px; color:var(--text3); font-style:italic; }
+
+  /* MAIN */
+  .main { display:grid; grid-template-columns:210px 1fr; min-height:calc(100vh - 200px); }
+
+  /* SIDEBAR */
+  .sidebar { background:var(--panel); border-right:1px solid var(--border); overflow-y:auto; padding:10px 0; }
+  .sidebar::-webkit-scrollbar { width:4px; }
+  .sidebar::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+  .section-header { padding:6px 16px; font-size:10px; letter-spacing:2px; color:var(--text3); font-weight:bold; margin-top:8px; }
+  .nav-item { display:flex; align-items:center; gap:8px; padding:6px 14px; cursor:pointer; transition:all .15s; border-left:2px solid transparent; color:var(--text2); font-size:12px; }
+  .nav-item:hover { background:var(--bg3); color:var(--text); }
+  .nav-item.active { background:rgba(255,255,255,0.03); border-left-color:var(--gray2); color:var(--accent3); }
+  .nav-icon { font-size:13px; width:15px; text-align:center; }
+  .nav-count { margin-left:auto; font-size:10px; background:var(--bg4); color:var(--text3); padding:1px 6px; border-radius:3px; }
+  .nav-count.has { background:rgba(255,255,255,0.06); color:var(--accent3); }
+
+  /* PANEL */
+  .panel { overflow-y:auto; background:var(--bg); }
+  .panel::-webkit-scrollbar { width:6px; }
+  .panel::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+  .tab-pane { display:none; }
+  .tab-pane.active { display:block; }
+
+  /* PANEL TOOLBAR */
+  .panel-toolbar { background:var(--bg2); border-bottom:1px solid var(--border); padding:9px 18px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+  .toolbar-title { font-size:12px; font-weight:bold; color:var(--accent3); letter-spacing:.5px; }
+  .toolbar-count { font-size:11px; color:var(--text3); }
+  .search-box { background:var(--bg3); border:1px solid var(--border); border-radius:4px; padding:4px 10px; display:flex; align-items:center; gap:6px; margin-left:auto; }
+  .search-box input { background:transparent; border:none; outline:none; color:var(--text); font-family:'Courier New',monospace; font-size:12px; width:150px; }
+  .search-box input::placeholder { color:var(--text3); }
+
+  /* TREE */
+  .tree-container { padding:10px; }
+  .tree-node { font-size:12px; line-height:1.7; user-select:none; }
+  .tree-row { display:flex; align-items:center; gap:4px; padding:2px 6px; border-radius:3px; cursor:pointer; transition:background .1s; }
+  .tree-row:hover { background:var(--bg3); }
+  .tree-toggle { width:12px; font-size:10px; color:var(--text3); flex-shrink:0; }
+  .tree-icon { font-size:12px; flex-shrink:0; }
+  .tree-name { color:var(--text); }
+  .tree-class { color:var(--text3); font-size:10px; margin-left:4px; }
+  .tree-children { margin-left:14px; border-left:1px solid var(--border); padding-left:4px; }
+  .tree-children.collapsed { display:none; }
+
+  /* PROP */
+  .prop-section { border-bottom:1px solid var(--border); padding:14px 18px; animation:fadeIn .2s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .prop-section-title { font-size:10px; letter-spacing:1.5px; color:var(--text3); margin-bottom:8px; font-weight:bold; }
+  .prop-grid { display:grid; grid-template-columns:140px 1fr; gap:4px 14px; align-items:start; }
+  .prop-key { color:var(--text3); font-size:12px; padding:3px 0; }
+  .prop-val { color:var(--text); font-size:12px; padding:3px 0; word-break:break-all; }
+  .prop-val.string { color:#86efac; }
+  .prop-val.number { color:#7dd3fc; }
+  .prop-val.boolean{ color:#a0a0f0; }
+
+  /* SCRIPT VIEWER */
+  .script-viewer { background:var(--bg3); border:1px solid var(--border); border-radius:6px; margin:14px 18px; overflow:hidden; }
+  .script-header { background:var(--bg4); padding:7px 12px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); }
+  .script-name { font-size:12px; color:var(--accent3); font-weight:bold; }
+  .script-type { font-size:10px; color:var(--text3); }
+  .script-body { padding:12px; font-size:11.5px; line-height:1.6; color:var(--text2); max-height:280px; overflow-y:auto; white-space:pre-wrap; word-break:break-word; }
+  .script-body::-webkit-scrollbar { width:4px; }
+  .script-body::-webkit-scrollbar-thumb { background:var(--border2); }
+
+  /* REMOTE TABLE */
+  .remote-table { width:100%; border-collapse:collapse; }
+  .remote-table th { background:var(--bg3); color:var(--text3); font-size:10px; letter-spacing:1.5px; padding:8px 14px; text-align:left; border-bottom:1px solid var(--border); position:sticky; top:0; }
+  .remote-table td { padding:8px 14px; border-bottom:1px solid rgba(36,36,36,0.8); font-size:12px; vertical-align:top; }
+  .remote-table tr:hover td { background:var(--bg2); }
+  .remote-type { display:inline-block; font-size:9px; padding:2px 6px; border-radius:3px; letter-spacing:1px; font-weight:bold; }
+  .rt-event    { background:rgba(251,191,36,0.12); color:var(--yellow); border:1px solid rgba(251,191,36,0.25); }
+  .rt-function { background:rgba(34,211,238,0.10); color:var(--cyan);   border:1px solid rgba(34,211,238,0.20); }
+  .rt-bindable { background:rgba(160,160,160,0.10); color:var(--gray);  border:1px solid rgba(160,160,160,0.25); }
+  .call-log { font-size:10px; color:var(--text3); max-width:260px; word-break:break-all; }
+  .call-log.has { color:var(--green2); }
+
+  /* SUMMARY */
+  .summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; padding:18px; }
+  .summary-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px; display:flex; flex-direction:column; gap:6px; transition:border-color .2s; animation:cardPop .4s ease backwards; cursor:pointer; }
+  @keyframes cardPop { from{opacity:0;transform:scale(.96)} to{opacity:1;transform:scale(1)} }
+  .summary-card:hover { border-color:var(--accent); }
+  .sc-icon { font-size:20px; }
+  .sc-value { font-size:22px; font-weight:bold; color:var(--accent3); }
+  .sc-label { font-size:10px; color:var(--text3); letter-spacing:1px; }
+
+  /* EMPTY */
+  .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:60px 30px; color:var(--text3); text-align:center; }
+  .empty-icon { font-size:40px; opacity:.25; }
+  .empty-title { font-size:13px; color:var(--text2); }
+  .empty-sub { font-size:11px; max-width:280px; line-height:1.6; }
+
+  /* LOADING */
+  .loading-bar { height:2px; background:var(--bg3); overflow:hidden; display:none; }
+  .loading-bar.active { display:block; }
+  .loading-bar-inner { height:100%; background:linear-gradient(90deg,transparent,#555,transparent); animation:loadingSlide 1.2s linear infinite; width:40%; }
+  @keyframes loadingSlide { from{margin-left:-40%} to{margin-left:140%} }
+
+  /* STATUS DOT */
+  .status-dot { width:7px; height:7px; border-radius:50%; display:inline-block; flex-shrink:0; }
+  .sd-green { background:var(--green); box-shadow:0 0 6px var(--green2); animation:blinkGreen 2s ease-in-out infinite; }
+  .sd-red   { background:var(--red); }
+  @keyframes blinkGreen { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* TOAST */
+  #toast { position:fixed; bottom:20px; right:20px; background:var(--bg4); border:1px solid var(--border2); border-radius:6px; padding:9px 16px; font-size:12px; color:var(--text); z-index:999; transform:translateY(80px); opacity:0; transition:all .3s ease; }
+  #toast.show { transform:translateY(0); opacity:1; }
+  #toast.success { border-color:rgba(74,222,128,0.4); }
+  #toast.error   { border-color:rgba(248,113,113,0.4); }
+
+  /* STATUSBAR */
+  .statusbar { background:var(--panel); border-top:1px solid var(--border); padding:0 20px; height:26px; display:flex; align-items:center; gap:16px; font-size:10px; color:var(--text3); letter-spacing:.5px; }
+  .statusbar-item { display:flex; align-items:center; gap:5px; }
+  .statusbar-sep { color:var(--border2); }
+
+  /* LUA HIGHLIGHT */
+  .highlight-lua .kw  { color:#aaaaff; }
+  .highlight-lua .str { color:#86efac; }
+  .highlight-lua .num { color:#7dd3fc; }
+  .highlight-lua .cmt { color:var(--text3); font-style:italic; }
+</style>
+</head>
+<body>
+<div class="content">
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">⬡</div>
+    SECRET GAME INFO CATCHER
+  </div>
+  <div class="header-actions">
+    <span class="badge badge-gray">v1.0</span>
+    <span id="connectionBadge" class="badge badge-red">OFFLINE</span>
+    <button class="btn btn-ghost" onclick="resetAll()">⟲ RESET</button>
+    <button class="btn btn-ghost" onclick="exportJSON()">↓ EXPORT</button>
+  </div>
+</header>
+
+<div class="loading-bar" id="loadingBar"><div class="loading-bar-inner"></div></div>
+
+<!-- INPUT ZONE -->
+<div class="input-zone">
+  <div class="input-group">
+    <label>PAYLOAD URL</label>
+    <input type="text" id="payloadUrl" placeholder="http://localhost:3000/api/payload/CAPTURE_ID — or paste any JSON URL" />
+  </div>
+  <button class="btn btn-primary" onclick="loadFromPayload()">▶ LOAD</button>
+  <button class="btn btn-ghost" onclick="refreshHistory()">⟳ HISTORY</button>
+  <button class="btn btn-copy" onclick="copyShareLink()" id="shareBtn">⛓ SHARE</button>
+</div>
+
+<!-- CAPTURE HISTORY -->
+<div class="history-bar" id="historyBar">
+  <span class="history-label">CAPTURES</span>
+  <span class="history-empty" id="historyEmpty">Loading captures...</span>
+</div>
+
+<!-- GAME CARD -->
+<div class="game-card" id="gameCard">
+  <div class="game-info-grid">
+    <div class="game-thumb">🎮</div>
+    <div class="game-meta">
+      <div class="game-name" id="gameName">—</div>
+      <div class="game-stats">
+        <div class="stat"><div class="stat-label">GAME ID</div><div class="stat-value cyan" id="gameId">—</div></div>
+        <div class="stat"><div class="stat-label">PLACE ID</div><div class="stat-value cyan" id="gamePlaceId">—</div></div>
+        <div class="stat"><div class="stat-label">CREATOR</div><div class="stat-value" id="gameCreator">—</div></div>
+        <div class="stat"><div class="stat-label">ACTIVE</div><div class="stat-value green" id="gamePlayers">—</div></div>
+        <div class="stat"><div class="stat-label">MAX</div><div class="stat-value" id="gameMax">—</div></div>
+        <div class="stat"><div class="stat-label">CAPTURED</div><div class="stat-value" id="gameCaptured">—</div></div>
+        <div class="stat"><div class="stat-label">FROM USER</div><div class="stat-value yellow" id="gameUserId">—</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="section-header">OVERVIEW</div>
+    <div class="nav-item active" onclick="switchTab('summary')" id="nav-summary"><span class="nav-icon">◈</span> Summary</div>
+
+    <div class="section-header">INSTANCE TREE</div>
+    <div class="nav-item" onclick="switchTab('workspace')" id="nav-workspace"><span class="nav-icon">🗂</span> Workspace<span class="nav-count" id="count-workspace">0</span></div>
+    <div class="nav-item" onclick="switchTab('services')" id="nav-services"><span class="nav-icon">⚙</span> ServerScripts<span class="nav-count" id="count-services">0</span></div>
+    <div class="nav-item" onclick="switchTab('lighting')" id="nav-lighting"><span class="nav-icon">☀</span> Lighting<span class="nav-count" id="count-lighting">0</span></div>
+    <div class="nav-item" onclick="switchTab('replicated')" id="nav-replicated"><span class="nav-icon">⊕</span> Replicated<span class="nav-count" id="count-replicated">0</span></div>
+    <div class="nav-item" onclick="switchTab('players')" id="nav-players"><span class="nav-icon">👤</span> Players<span class="nav-count" id="count-players">0</span></div>
+    <div class="nav-item" onclick="switchTab('starter')" id="nav-starter"><span class="nav-icon">▷</span> StarterPack<span class="nav-count" id="count-starter">0</span></div>
+
+    <div class="section-header">SCRIPTS</div>
+    <div class="nav-item" onclick="switchTab('scripts')" id="nav-scripts"><span class="nav-icon">📜</span> Scripts<span class="nav-count" id="count-scripts">0</span></div>
+    <div class="nav-item" onclick="switchTab('localscripts')" id="nav-localscripts"><span class="nav-icon">📄</span> LocalScripts<span class="nav-count" id="count-localscripts">0</span></div>
+    <div class="nav-item" onclick="switchTab('modulescripts')" id="nav-modulescripts"><span class="nav-icon">📦</span> ModuleScripts<span class="nav-count" id="count-modulescripts">0</span></div>
+
+    <div class="section-header">REMOTES</div>
+    <div class="nav-item" onclick="switchTab('remotes')" id="nav-remotes"><span class="nav-icon">📡</span> RemoteEvents<span class="nav-count" id="count-remotes">0</span></div>
+    <div class="nav-item" onclick="switchTab('functions')" id="nav-functions"><span class="nav-icon">⚡</span> RemoteFunctions<span class="nav-count" id="count-functions">0</span></div>
+
+    <div class="section-header">ASSETS</div>
+    <div class="nav-item" onclick="switchTab('parts')" id="nav-parts"><span class="nav-icon">◧</span> Parts<span class="nav-count" id="count-parts">0</span></div>
+    <div class="nav-item" onclick="switchTab('models')" id="nav-models"><span class="nav-icon">🧊</span> Models<span class="nav-count" id="count-models">0</span></div>
+    <div class="nav-item" onclick="switchTab('gui')" id="nav-gui"><span class="nav-icon">🖥</span> GUI<span class="nav-count" id="count-gui">0</span></div>
+    <div class="nav-item" onclick="switchTab('values')" id="nav-values"><span class="nav-icon">⚑</span> Values<span class="nav-count" id="count-values">0</span></div>
+  </div>
+
+  <!-- PANEL -->
+  <div class="panel">
+    <!-- SUMMARY -->
+    <div class="tab-pane active" id="tab-summary">
+      <div class="panel-toolbar"><div class="toolbar-title">OVERVIEW</div></div>
+      <div id="summaryEmpty" class="empty-state">
+        <div class="empty-icon">⬡</div>
+        <div class="empty-title">No data loaded</div>
+        <div class="empty-sub">Click a capture from the history bar above, or paste a payload URL and click LOAD. Run your executor script first to create a capture.</div>
+      </div>
+      <div id="summaryContent" style="display:none">
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div class="prop-section">
+          <div class="prop-section-title">GAME DESCRIPTION</div>
+          <div id="gameDesc" style="color:var(--text2);font-size:12px;line-height:1.7;white-space:pre-wrap">—</div>
+        </div>
+        <div class="prop-section">
+          <div class="prop-section-title">RAW GAME METADATA</div>
+          <div id="rawMeta" style="font-size:11px;color:var(--text2);white-space:pre-wrap;line-height:1.6">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TREE TABS -->
+    <div class="tab-pane" id="tab-workspace">
+      <div class="panel-toolbar">
+        <div class="toolbar-title">WORKSPACE</div>
+        <div class="toolbar-count" id="tc-workspace">—</div>
+        <div class="search-box" style="margin-left:auto"><span style="color:var(--text3)">⌕</span><input type="text" placeholder="filter..." oninput="filterTree('workspace',this.value)"/></div>
+      </div>
+      <div class="tree-container" id="tree-workspace"><div class="empty-state"><div class="empty-icon">🗂</div><div class="empty-title">No data</div></div></div>
+    </div>
+    <div class="tab-pane" id="tab-services">
+      <div class="panel-toolbar"><div class="toolbar-title">SERVERSCRIPTSERVICE</div><div class="toolbar-count" id="tc-services">—</div></div>
+      <div class="tree-container" id="tree-services"><div class="empty-state"><div class="empty-icon">⚙</div><div class="empty-title">No data</div></div></div>
+    </div>
+    <div class="tab-pane" id="tab-lighting">
+      <div class="panel-toolbar"><div class="toolbar-title">LIGHTING</div><div class="toolbar-count" id="tc-lighting">—</div></div>
+      <div class="tree-container" id="tree-lighting"><div class="empty-state"><div class="empty-icon">☀</div><div class="empty-title">No data</div></div></div>
+    </div>
+    <div class="tab-pane" id="tab-replicated">
+      <div class="panel-toolbar"><div class="toolbar-title">REPLICATEDSTORAGE</div><div class="toolbar-count" id="tc-replicated">—</div></div>
+      <div class="tree-container" id="tree-replicated"><div class="empty-state"><div class="empty-icon">⊕</div><div class="empty-title">No data</div></div></div>
+    </div>
+    <div class="tab-pane" id="tab-players">
+      <div class="panel-toolbar"><div class="toolbar-title">PLAYERS</div><div class="toolbar-count" id="tc-players">—</div></div>
+      <div class="tree-container" id="tree-players"><div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">No data</div></div></div>
+    </div>
+    <div class="tab-pane" id="tab-starter">
+      <div class="panel-toolbar"><div class="toolbar-title">STARTERPACK</div></div>
+      <div class="tree-container" id="tree-starter"><div class="empty-state"><div class="empty-icon">▷</div><div class="empty-title">No data</div></div></div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <div class="tab-pane" id="tab-scripts">
+      <div class="panel-toolbar">
+        <div class="toolbar-title">SCRIPTS (SERVER)</div>
+        <div class="toolbar-count" id="tc-scripts">—</div>
+        <div class="search-box" style="margin-left:auto"><span style="color:var(--text3)">⌕</span><input type="text" placeholder="search..." oninput="filterScripts('scripts',this.value)"/></div>
+      </div>
+      <div id="list-scripts"><div class="empty-state"><div class="empty-icon">📜</div><div class="empty-title">No scripts</div></div></div>
+    </div>
+    <div class="tab-pane" id="tab-localscripts">
+      <div class="panel-toolbar"><div class="toolbar-title">LOCALSCRIPTS</div><div class="toolbar-count" id="tc-localscripts">—</div></div>
+      <div id="list-localscripts"><div class="empty-state"><div class="empty-icon">📄</div><div class="empty-title">No LocalScripts</div></div></div>
+    </div>
+    <div class="tab-pane" id="tab-modulescripts">
+      <div class="panel-toolbar"><div class="toolbar-title">MODULESCRIPTS</div><div class="toolbar-count" id="tc-modulescripts">—</div></div>
+      <div id="list-modulescripts"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No ModuleScripts</div></div></div>
+    </div>
+
+    <!-- REMOTES -->
+    <div class="tab-pane" id="tab-remotes">
+      <div class="panel-toolbar">
+        <div class="toolbar-title">REMOTE SPY — EVENTS</div>
+        <div class="toolbar-count" id="tc-remotes">—</div>
+        <div class="search-box" style="margin-left:auto"><span style="color:var(--text3)">⌕</span><input type="text" placeholder="filter..." oninput="filterTable('remote-table',this.value)"/></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="remote-table" id="remote-table">
+          <thead><tr><th>TYPE</th><th>NAME</th><th>PATH</th><th>CALLS</th><th>LAST ARGS</th></tr></thead>
+          <tbody id="tbody-remotes"><tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">No remotes captured</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="tab-pane" id="tab-functions">
+      <div class="panel-toolbar"><div class="toolbar-title">REMOTE SPY — FUNCTIONS</div><div class="toolbar-count" id="tc-functions">—</div></div>
+      <div style="overflow-x:auto">
+        <table class="remote-table" id="function-table">
+          <thead><tr><th>TYPE</th><th>NAME</th><th>PATH</th><th>CALLS</th><th>LAST ARGS</th></tr></thead>
+          <tbody id="tbody-functions"><tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">No functions</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ASSETS -->
+    <div class="tab-pane" id="tab-parts">
+      <div class="panel-toolbar"><div class="toolbar-title">PARTS / MESHES</div><div class="toolbar-count" id="tc-parts">—</div></div>
+      <div class="tree-container" id="list-parts"><div class="empty-state"><div class="empty-icon">◧</div><div class="empty-title">No parts</div></div></div>
+    </div>
+    <div class="tab-pane" id="tab-models">
+      <div class="panel-toolbar"><div class="toolbar-title">MODELS</div><div class="toolbar-count" id="tc-models">—</div></div>
+      <div class="tree-container" id="list-models"><div class="empty-state"><div class="empty-icon">🧊</div><div class="empty-title">No models</div></div></div>
+    </div>
+    <div class="tab-pane" id="tab-gui">
+      <div class="panel-toolbar"><div class="toolbar-title">GUI ELEMENTS</div><div class="toolbar-count" id="tc-gui">—</div></div>
+      <div class="tree-container" id="list-gui"><div class="empty-state"><div class="empty-icon">🖥</div><div class="empty-title">No GUI data</div></div></div>
+    </div>
+    <div class="tab-pane" id="tab-values">
+      <div class="panel-toolbar"><div class="toolbar-title">VALUES / CONFIG</div><div class="toolbar-count" id="tc-values">—</div></div>
+      <div id="list-values"><div class="empty-state"><div class="empty-icon">⚑</div><div class="empty-title">No values</div></div></div>
+    </div>
+  </div><!-- /panel -->
+</div><!-- /main -->
+
+<!-- STATUSBAR -->
+<div class="statusbar">
+  <div class="statusbar-item">
+    <span class="status-dot sd-red" id="statusDot"></span>
+    <span id="statusText">Awaiting payload</span>
+  </div>
+  <span class="statusbar-sep">|</span>
+  <span id="sbGame">GAME: —</span>
+  <span class="statusbar-sep">|</span>
+  <span id="sbScripts">SCRIPTS: 0</span>
+  <span class="statusbar-sep">|</span>
+  <span id="sbRemotes">REMOTES: 0</span>
+  <span class="statusbar-sep" style="margin-left:auto">|</span>
+  <span>SGIC NODE v1.0</span>
+</div>
+
+</div><!-- /content -->
+<div id="toast"></div>
+
+<script>
+let G = null;
+let currentHistoryId = null;
+
+const ICONS = {
+  Part:'◧',MeshPart:'◨',UnionOperation:'◩',Script:'📜',LocalScript:'📄',ModuleScript:'📦',
+  RemoteEvent:'📡',RemoteFunction:'⚡',BindableEvent:'🔗',Model:'🧊',Folder:'📁',
+  Configuration:'⚙',StringValue:'🔤',IntValue:'🔢',BoolValue:'🔘',NumberValue:'🔢',
+  Frame:'🖼',TextLabel:'🏷',TextButton:'⬛',ScreenGui:'🖥',Player:'👤',Camera:'📷',
+  Lighting:'☀',Sky:'🌌',default:'◈'
+};
+function icon(cls){ return ICONS[cls]||ICONS.default; }
+
+function toast(msg, type='success'){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  setTimeout(()=>{ t.className=''; }, 2500);
+}
+function loading(on){ document.getElementById('loadingBar').className='loading-bar'+(on?' active':''); }
+
+function switchTab(name){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+}
+
+function setCount(id, n){
+  const el = document.getElementById('count-'+id);
+  if(!el) return;
+  el.textContent = n;
+  el.className = 'nav-count'+(n>0?' has':'');
+}
+
+function setStatus(online, text){
+  document.getElementById('statusDot').className = 'status-dot '+(online?'sd-green':'sd-red');
+  document.getElementById('statusText').textContent = text;
+  const b = document.getElementById('connectionBadge');
+  b.textContent = online?'LIVE':'OFFLINE';
+  b.className = 'badge '+(online?'badge-green':'badge-red');
+}
+
+// ── HISTORY ─────────────────────────────────────────────────
+async function refreshHistory(){
+  try {
+    const res  = await fetch('/api/payloads');
+    const list = await res.json();
+    const bar  = document.getElementById('historyBar');
+    const empty= document.getElementById('historyEmpty');
+
+    // clear old chips (keep label and empty span)
+    bar.querySelectorAll('.history-chip').forEach(e=>e.remove());
+
+    if(!list.length){
+      empty.style.display='';
+      empty.textContent = 'No captures yet — run the executor script first';
+      return;
+    }
+    empty.style.display='none';
+    list.forEach(cap => {
+      const chip = document.createElement('div');
+      chip.className = 'history-chip'+(cap.id===currentHistoryId?' active':'');
+      chip.innerHTML = `<span class="history-chip-dot"></span>${cap.gameName||'Unknown'} <span style="color:var(--text3);font-size:10px">#${cap.id}</span>`;
+      chip.title = `PlaceId: ${cap.placeId} | Scripts: ${cap.scriptCount} | Remotes: ${cap.remoteCount} | ${cap.receivedAt}`;
+      chip.onclick = () => loadCaptureById(cap.id);
+      bar.appendChild(chip);
+    });
+  } catch(e){
+    document.getElementById('historyEmpty').textContent = 'Could not reach server — is it running?';
+  }
+}
+
+async function loadCaptureById(id){
+  currentHistoryId = id;
+  document.getElementById('payloadUrl').value = `/api/payload/${id}`;
+  await loadFromPayload();
+  refreshHistory(); // re-render chips with active state
+}
+
+// ── LOAD ─────────────────────────────────────────────────────
+async function loadFromPayload(){
+  const url = document.getElementById('payloadUrl').value.trim();
+  if(!url){ toast('Paste a payload URL first','error'); return; }
+  loading(true);
+  setStatus(false,'Fetching...');
+  try {
+    const res = await fetch(url, {mode:'cors'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    applyData(data);
+  } catch(e){
+    loading(false);
+    setStatus(false,'Failed: '+e.message);
+    toast('Failed: '+e.message,'error');
+  }
+}
+
+// ── APPLY DATA ───────────────────────────────────────────────
+function applyData(data){
+  G = data;
+  setStatus(true,'Loaded — '+new Date().toLocaleTimeString());
+  loading(false);
+
+  document.getElementById('gameCard').classList.add('visible');
+  document.getElementById('gameName').textContent     = data.game?.name || '—';
+  document.getElementById('gameId').textContent       = data.game?.id   || '—';
+  document.getElementById('gamePlaceId').textContent  = data.game?.placeId || '—';
+  document.getElementById('gameCreator').textContent  = data.game?.creator || '—';
+  document.getElementById('gamePlayers').textContent  = data.game?.activePlayers ?? '—';
+  document.getElementById('gameMax').textContent      = data.game?.maxPlayers ?? '—';
+  document.getElementById('gameCaptured').textContent = data._receivedAt || data.captured || '—';
+  document.getElementById('gameUserId').textContent   = data._userId || '—';
+  document.getElementById('gameDesc').textContent     = data.game?.description || '—';
+  document.getElementById('rawMeta').textContent      = JSON.stringify(data.game, null, 2);
+
+  const stats = [
+    {icon:'◧', val:data.parts?.length||0,   label:'PARTS'},
+    {icon:'🧊', val:data.models?.length||0,  label:'MODELS'},
+    {icon:'📜', val:(data.scripts?.length||0)+(data.localScripts?.length||0)+(data.moduleScripts?.length||0), label:'SCRIPTS'},
+    {icon:'📡', val:(data.remotes?.length||0)+(data.remoteFunctions?.length||0), label:'REMOTES'},
+    {icon:'🖥', val:data.gui?.length||0,      label:'GUI ELEMENTS'},
+    {icon:'⚑',  val:data.values?.length||0,  label:'VALUES'},
+  ];
+  document.getElementById('summaryGrid').innerHTML = stats.map((s,i)=>
+    `<div class="summary-card" style="animation-delay:${i*.05+.05}s">
+      <div class="sc-icon">${s.icon}</div>
+      <div class="sc-value">${s.val}</div>
+      <div class="sc-label">${s.label}</div>
+    </div>`).join('');
+  document.getElementById('summaryEmpty').style.display  = 'none';
+  document.getElementById('summaryContent').style.display= 'block';
+
+  // trees
+  const treeSections = [
+    ['workspace','Workspace'],['services','ServerScriptService'],
+    ['lighting','Lighting'],['replicated','ReplicatedStorage'],
+    ['players','Players'],['starter','StarterPack'],
+  ];
+  treeSections.forEach(([id,key])=>{
+    const arr = data.tree?.[key] || [];
+    if(arr.length){
+      document.getElementById('tree-'+id).innerHTML = buildTree(arr);
+      setCount(id, arr.length);
+      const tc = document.getElementById('tc-'+id);
+      if(tc) tc.textContent = arr.length+' instances';
+    }
+  });
+
+  // scripts
+  [['scripts','scripts'],['localScripts','localscripts'],['moduleScripts','modulescripts']].forEach(([key,tabId])=>{
+    const arr = data[key]||[];
+    if(arr.length){
+      document.getElementById('list-'+tabId).innerHTML = arr.map(renderScript).join('');
+      setCount(tabId, arr.length);
+      const tc = document.getElementById('tc-'+tabId);
+      if(tc) tc.textContent = arr.length+' scripts';
+    }
+  });
+
+  // remotes
+  if(data.remotes?.length){
+    document.getElementById('tbody-remotes').innerHTML = data.remotes.map(renderRemoteRow).join('');
+    setCount('remotes', data.remotes.length);
+    document.getElementById('tc-remotes').textContent = data.remotes.length+' remotes';
+  }
+  if(data.remoteFunctions?.length){
+    document.getElementById('tbody-functions').innerHTML = data.remoteFunctions.map(renderRemoteRow).join('');
+    setCount('functions', data.remoteFunctions.length);
+    document.getElementById('tc-functions').textContent = data.remoteFunctions.length+' functions';
+  }
+
+  // assets
+  if(data.parts?.length){ document.getElementById('list-parts').innerHTML=buildTree(data.parts); setCount('parts',data.parts.length); document.getElementById('tc-parts').textContent=data.parts.length+' parts'; }
+  if(data.models?.length){ document.getElementById('list-models').innerHTML=buildTree(data.models); setCount('models',data.models.length); document.getElementById('tc-models').textContent=data.models.length+' models'; }
+  if(data.gui?.length){ document.getElementById('list-gui').innerHTML=buildTree(data.gui); setCount('gui',data.gui.length); document.getElementById('tc-gui').textContent=data.gui.length+' elements'; }
+  if(data.values?.length){ document.getElementById('list-values').innerHTML=data.values.map(renderValueRow).join(''); setCount('values',data.values.length); document.getElementById('tc-values').textContent=data.values.length+' values'; }
+
+  // statusbar
+  document.getElementById('sbGame').textContent = 'GAME: '+(data.game?.name||'—');
+  const ts = (data.scripts?.length||0)+(data.localScripts?.length||0)+(data.moduleScripts?.length||0);
+  const tr = (data.remotes?.length||0)+(data.remoteFunctions?.length||0);
+  document.getElementById('sbScripts').textContent = 'SCRIPTS: '+ts;
+  document.getElementById('sbRemotes').textContent = 'REMOTES: '+tr;
+
+  toast('✓ Loaded: '+(data.game?.name||'Unknown'));
+}
+
+// ── TREE BUILDER ────────────────────────────────────────────
+function buildTree(nodes, depth=0){
+  if(!nodes||!nodes.length) return '';
+  return nodes.map(node=>{
+    const hasChildren = node.children?.length>0;
+    const uid = 'n'+Math.random().toString(36).slice(2,9);
+    return `<div class="tree-node">
+      <div class="tree-row" onclick="toggleNode('${uid}',event)">
+        <span class="tree-toggle">${hasChildren?'▶':' '}</span>
+        <span class="tree-icon">${icon(node.className)}</span>
+        <span class="tree-name">${escHtml(node.name)}</span>
+        <span class="tree-class">${escHtml(node.className)}</span>
+      </div>
+      ${hasChildren?`<div class="tree-children collapsed" id="${uid}">${buildTree(node.children,depth+1)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function toggleNode(uid, evt){
+  evt.stopPropagation();
+  const el = document.getElementById(uid); if(!el) return;
+  const toggle = el.previousElementSibling.querySelector('.tree-toggle');
+  if(el.classList.contains('collapsed')){ el.classList.remove('collapsed'); toggle.textContent='▼'; }
+  else { el.classList.add('collapsed'); toggle.textContent='▶'; }
+}
+
+function filterTree(id, val){
+  document.getElementById('tree-'+id).querySelectorAll('.tree-row').forEach(row=>{
+    row.closest('.tree-node').style.display=(!val||row.querySelector('.tree-name').textContent.toLowerCase().includes(val.toLowerCase()))?'':'none';
+  });
+}
+
+// ── SCRIPT RENDERER ─────────────────────────────────────────
+function luaHL(code){
+  return code
+    .replace(/--[^\n]*/g, s=>`<span class="cmt">${s}</span>`)
+    .replace(/\b(local|function|end|if|then|else|elseif|for|do|while|return|and|or|not|true|false|nil)\b/g, s=>`<span class="kw">${s}</span>`)
+    .replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, s=>`<span class="str">${s}</span>`)
+    .replace(/\b(\d+(\.\d+)?)\b/g, s=>`<span class="num">${s}</span>`);
+}
+function renderScript(s){
+  return `<div class="script-viewer">
+    <div class="script-header">
+      <span class="script-name">${escHtml(s.name)}</span>
+      <span class="script-type">${escHtml(s.className)}</span>
+      <span style="margin-left:auto;font-size:10px;color:var(--text3)">${escHtml(s.path)}</span>
+    </div>
+    <div class="script-body highlight-lua">${luaHL(escHtml(s.source||'-- source unavailable'))}</div>
+  </div>`;
+}
+function filterScripts(id, val){
+  document.getElementById('list-'+id).querySelectorAll('.script-viewer').forEach(el=>{
+    el.style.display=(!val||el.querySelector('.script-name').textContent.toLowerCase().includes(val.toLowerCase()))?'':'none';
+  });
+}
+
+function filterTable(tableId, val){
+  document.getElementById(tableId).querySelectorAll('tbody tr').forEach(row=>{
+    row.style.display=(!val||row.textContent.toLowerCase().includes(val.toLowerCase()))?'':'none';
+  });
+}
+
+function renderRemoteRow(r){
+  const tc = r.className==='RemoteEvent'?'rt-event':r.className==='RemoteFunction'?'rt-function':'rt-bindable';
+  return `<tr>
+    <td><span class="remote-type ${tc}">${escHtml(r.className)}</span></td>
+    <td style="color:var(--accent3);font-weight:bold">${escHtml(r.name)}</td>
+    <td style="color:var(--text3);font-size:11px">${escHtml(r.path)}</td>
+    <td><span class="call-log${r.calls>0?' has':''}">${r.calls||0}</span></td>
+    <td><span class="call-log${r.lastArgs?' has':''}">${escHtml(r.lastArgs||'—')}</span></td>
+  </tr>`;
+}
+
+function renderValueRow(v){
+  const typeColor = v.className.includes('String')?'string':v.className.includes('Bool')?'boolean':'number';
+  return `<div class="prop-section" style="padding:10px 18px">
+    <div class="prop-grid">
+      <div class="prop-key">${escHtml(v.path)}</div>
+      <div class="prop-val ${typeColor}">${escHtml(String(v.value))}</div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-top:2px">${escHtml(v.className)}</div>
+  </div>`;
+}
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function copyShareLink(){
+  if(!G){ toast('Load data first','error'); return; }
+  const url = `${location.origin}/api/payload/${G._id}`;
+  navigator.clipboard.writeText(url).then(()=>toast('Share link copied!')).catch(()=>toast('Copy failed','error'));
+}
+
+function exportJSON(){
+  if(!G){ toast('No data to export','error'); return; }
+  const blob = new Blob([JSON.stringify(G,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `sgic_${G.game?.id}_${Date.now()}.json`;
+  a.click();
+  toast('JSON exported!');
+}
+
+function resetAll(){ location.reload(); }
+
+// auto-load from URL param
+(function(){
+  const params = new URLSearchParams(location.search);
+  const pid = params.get('payload');
+  if(pid){ document.getElementById('payloadUrl').value=pid; loadFromPayload(); }
+  refreshHistory();
+  setInterval(refreshHistory, 10000); // auto-refresh history every 10s
+})();
+</script>
+</body>
+</html>
